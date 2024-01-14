@@ -11,7 +11,7 @@
 
 # 介绍
 - 本插件是适配Google Bard模型的聊天机器人插件，借助bard的联网能力和多模态识别能力实现更准确地回复和图片识别回复等功能。
-- 根据谷歌目前的说法，使用英文向bard提问掉用的模型为Gemini Pro
+- 根据谷歌目前的说法，使用英文向bard提问调用的模型为Gemini Pro
 - ![bard的联网能力](nonebot_plugin_bard/images/demo2.jpg)
 - ![bard的多模态识别能力](nonebot_plugin_bard/images/demo1.jpg)
 # 安装
