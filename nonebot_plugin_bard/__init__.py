@@ -9,7 +9,7 @@ from nonebot.adapters.onebot.v11 import Message, MessageSegment, PrivateMessageE
 from nonebot.plugin import PluginMetadata
 
 from .config import Config, ConfigError
-from bardapi import Bard
+from bardapi import Bard,BardCookies
 
 __plugin_meta__ = PluginMetadata(
     name="谷歌Bard聊天",
@@ -34,61 +34,60 @@ if not plugin_config.bard_token:
 
 token = plugin_config.bard_token
 
+if not token:
+    raise ConfigError("请设置Bard的cookies!")
+
 public = plugin_config.bard_group_public
 session = {}
 
-# 不带上下文的聊天
+proxies = {
+    'http': plugin_config.bard_proxy,
+    'https': plugin_config.bard_proxy
+} if plugin_config.bard_proxy else None
+
+cookie_dict = {
+    "__Secure-1PSID": token,
+    "__Secure-1PSIDTS": plugin_config.bard_token1,
+    "__Secure-1PSIDCC": plugin_config.bard_token2
+} if plugin_config.bard_token1 and plugin_config.bard_token2 else None
+
+if cookie_dict:
+    bard = BardCookies(cookie_dict=cookie_dict, proxies=proxies,language='chinese (simplified)')
+else:
+    bard = Bard(token=token, proxies=proxies,language='chinese (simplified)')
+
 chat_request = on_command("bard", block=False, priority=1)
-# 识图
-image_request = on_command("识图", block=False, priority=1)
 
-
-# 不带记忆的对话
 @chat_request.handle()
 async def _(event: MessageEvent, msg: Message = CommandArg()):
     if isinstance(event, PrivateMessageEvent) and not plugin_config.bard_enable_private_chat:
         chat_request.finish("对不起，私聊暂不支持此功能。")
-
+    img_url = helpers.extract_image_urls(event.message)
     content = msg.extract_plain_text()
     if content == "" or content is None:
         await chat_request.finish(MessageSegment.text("内容不能为空！"))
     await chat_request.send(MessageSegment.text("Bard正在思考中......"))
-
-    try:
-        loop =  asyncio.get_event_loop()
-        res = await loop.run_in_executor(None, get_res ,content)
-    except Exception as error:
-        await chat_request.finish(str(error))
-    await chat_request.finish(MessageSegment.text(res), at_sender=True)
-
-# 识图
-@image_request.handle()
-async def _(event: MessageEvent, msg: Message = CommandArg()):
-    if isinstance(event, PrivateMessageEvent) and not plugin_config.bard_enable_private_chat:
-        image_request.finish("对不起，私聊暂不支持此功能。")
-
-    img_url = helpers.extract_image_urls(event.message)
-    content = msg.extract_plain_text()
-    if content == "" or content is None:
-        await image_request.finish(MessageSegment.text("内容不能为空！"))
+    loop =  asyncio.get_event_loop()
     if not img_url:
-        await image_request.finish("没有检测到你的图片！",at_sender=True)
-    await image_request.send(MessageSegment.text("Bard正在思考中......"))
-
-    try:
-        loop =  asyncio.get_event_loop()
-        res = await loop.run_in_executor(None, img_process ,content, img_url[0])
-    except Exception as error:
-        await image_request.finish(str(error))
-    await image_request.finish(MessageSegment.text(res), at_sender=True)
+        try:
+            res = await loop.run_in_executor(None, get_res ,content)
+        except Exception as error:
+            await chat_request.finish(str(error))
+        await chat_request.finish(MessageSegment.text(res), at_sender=True)
+    else:
+        try:
+            res = await loop.run_in_executor(None, img_process ,content, img_url[0])
+        except Exception as error:
+            await chat_request.finish(str(error))
+        await chat_request.finish(MessageSegment.text(res), at_sender=True)
 
 def get_res(content):
-    bard = Bard(token=token)
     res = bard.get_answer(content)['content']
     return res
 
 def img_process(content,url):
-    bard = Bard(token=token,language='chinese (simplified)')
+    # bard = Bard(token=token,language='chinese (simplified)')
+    print(url)
     response = requests.get(url)
     data_stream = response.content
     bard_answer = bard.ask_about_image(content, data_stream)

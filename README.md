@@ -11,9 +11,9 @@
 
 # 介绍
 - 本插件是适配Google Bard模型的聊天机器人插件，借助bard的联网能力和多模态识别能力实现更准确地回复和图片识别回复等功能。
-- 根据谷歌目前的说法，使用英文向bard提问调用的模型为Gemini Pro
-- ![bard的联网能力](nonebot_plugin_bard/images/demo2.jpg)
-- ![bard的多模态识别能力](nonebot_plugin_bard/images/demo1.jpg)
+- 目前中文回答和英文回答使用的模型均为Gemini Pro
+- ![Gemini Pro的联网能力](nonebot_plugin_bard/images/demo2.jpg)
+- ![Gemini Pro的多模态识别能力](nonebot_plugin_bard/images/demo1.jpg)
 # 安装
 
 * 手动安装
@@ -38,6 +38,7 @@
 ```
 bard_token = xxxxxxxx
 ```
+<a id='cookies'></a>
 ### cookies获取方法
 0. 确保您已经拥有bard的访问权限
 1. 访问 https://bard.google.com/
@@ -47,12 +48,14 @@ bard_token = xxxxxxxx
 ##  可选内容：
 ```
 bard_enable_private_chat = True   # 私聊开关，默认开启，改为False关闭
+bard_proxy = "127.0.0.1:8001"    # 配置代理访问Bard
+```
+若配置了bard_token还无法访问bard，请额外增加两项cookies信息，bard_token也需要配置）
+```
+bard_token1 = "xxxxxxxx"  # "__Secure-1PSIDTS"的值
+bard_token2 = "xxxxxxxx"  # "__Secure-1PSIDCC"的值
 ```
 
-
 # 使用方法
-- bard 发起对话
-- 识图+图片 调用bard的多模态识别能力识图
-
-# ToDo
-- [ ] 代理支持
+- bard+文字 发起无记忆对话
+- bard+图片 调用bard的多模态识别能力识图
