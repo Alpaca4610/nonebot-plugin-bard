@@ -1,23 +1,25 @@
 import nonebot
-import asyncio
 import requests
-import io
 
-from nonebot import on_command
+from nonebot import on_command,require
 from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import Message, MessageSegment, PrivateMessageEvent, MessageEvent, helpers
 from nonebot.plugin import PluginMetadata
 
 from .config import Config, ConfigError
-from bardapi import Bard,BardCookies
+from .gemini_webapi import GeminiClient
+
+# require("nonebot_plugin_htmlrender")
+# from nonebot_plugin_htmlrender import md_to_pic
 
 __plugin_meta__ = PluginMetadata(
-    name="谷歌Bard聊天",
-    description="Nonebot框架下的谷歌Bard聊天插件，支持联网搜索和图片识别",
+    name="谷歌Gemini Pro聊天",
+    description="Nonebot框架下的谷歌Gemini Pro聊天插件，支持联网搜索和图片识别",
     usage=
     '''
-    bard 发起对话
-    i识图+图片 调用bard的多模态识别能力识图
+    Gemini 文字/图片 发起无记忆对话
+    连续对话 文字/图片 发起有记忆对话
+    连续对话结束 结束本次有记忆对话
     ''',
     config= Config,
     extra={},
@@ -29,67 +31,88 @@ __plugin_meta__ = PluginMetadata(
 # 配置导入
 plugin_config = Config.parse_obj(nonebot.get_driver().config.dict())
 
-if not plugin_config.bard_token:
-    raise ConfigError("请设置bard的cookies")
+token1 = plugin_config.gemini_token1
+token2 = plugin_config.gemini_token2
 
-token = plugin_config.bard_token
-
-if not token:
-    raise ConfigError("请设置Bard的cookies!")
-
-public = plugin_config.bard_group_public
-session = {}
+if not (token1 and token2):
+    raise ConfigError("请设置Gemini的cookies")
 
 proxies = {
-    'http': plugin_config.bard_proxy,
-    'https': plugin_config.bard_proxy
-} if plugin_config.bard_proxy else None
+    'http': plugin_config.gemini_proxy,
+    'https': plugin_config.gemini_proxy
+} if plugin_config.gemini_proxy else None
 
-cookie_dict = {
-    "__Secure-1PSID": token,
-    "__Secure-1PSIDTS": plugin_config.bard_token1,
-    "__Secure-1PSIDCC": plugin_config.bard_token2
-} if plugin_config.bard_token1 and plugin_config.bard_token2 else None
+client = GeminiClient(token1, token2, proxy=proxies)
 
-if cookie_dict:
-    bard = BardCookies(cookie_dict=cookie_dict, proxies=proxies,language='chinese (simplified)')
-else:
-    bard = Bard(token=token, proxies=proxies,language='chinese (simplified)')
+public = plugin_config.gemini_group_public
+session = {}
 
-chat_request = on_command("bard", block=False, priority=1)
-
+chat_request = on_command("Gemini", block=False, priority=1)
 @chat_request.handle()
 async def _(event: MessageEvent, msg: Message = CommandArg()):
-    if isinstance(event, PrivateMessageEvent) and not plugin_config.bard_enable_private_chat:
+    if isinstance(event, PrivateMessageEvent) and not plugin_config.gemini_enable_private_chat:
         chat_request.finish("对不起，私聊暂不支持此功能。")
     img_url = helpers.extract_image_urls(event.message)
     content = msg.extract_plain_text()
     if content == "" or content is None:
         await chat_request.finish(MessageSegment.text("内容不能为空！"))
-    await chat_request.send(MessageSegment.text("Bard正在思考中......"))
-    loop =  asyncio.get_event_loop()
+    await chat_request.send(MessageSegment.text("Gemini正在思考中......"))
     if not img_url:
         try:
-            res = await loop.run_in_executor(None, get_res ,content)
+            res = await client.generate_content(content)
         except Exception as error:
             await chat_request.finish(str(error))
-        await chat_request.finish(MessageSegment.text(res), at_sender=True)
+        # pic = await md_to_pic(res.text, width=800)
+        # await chat_request.send(MessageSegment.image(pic), at_sender=True)
+        await chat_request.finish(MessageSegment.text(res.text), at_sender=True)
     else:
         try:
-            res = await loop.run_in_executor(None, img_process ,content, img_url[0])
+            response = requests.get(img_url[0])
+            res = await client.generate_content(content, image=response.content)
         except Exception as error:
             await chat_request.finish(str(error))
-        await chat_request.finish(MessageSegment.text(res), at_sender=True)
+        await chat_request.finish(MessageSegment.text(res.text), at_sender=True)
 
-def get_res(content):
-    res = bard.get_answer(content)['content']
-    return res
+chat_record = on_command("连续对话", block=False, priority=1)
+@chat_record.handle()
+async def _(event: MessageEvent, msg: Message = CommandArg()):
+    if isinstance(event, PrivateMessageEvent) and not plugin_config.gemini_enable_private_chat:
+        chat_record.finish("对不起，私聊暂不支持此功能。")
+    img_url = helpers.extract_image_urls(event.message)
+    content = msg.extract_plain_text()
+    if content == "" or content is None:
+        await chat_record.finish(MessageSegment.text("内容不能为空！"))
+    await chat_record.send(MessageSegment.text("Gemini正在思考中......"))
 
-def img_process(content,url):
-    # bard = Bard(token=token,language='chinese (simplified)')
-    print(url)
-    response = requests.get(url)
-    data_stream = response.content
-    bard_answer = bard.ask_about_image(content, data_stream)
-    res = bard_answer['content']
-    return res
+    session_id = create_session_id(event)
+    if session_id not in session:
+        session[session_id] = client.start_chat()
+
+    if not img_url:
+        try:
+            res = await session[session_id].send_message(content)
+        except Exception as error:
+            await chat_record.finish(str(error))
+        await chat_record.finish(MessageSegment.text(res.text), at_sender=True)
+    else:
+        try:
+            response = requests.get(img_url[0])
+            res = await session[session_id].send_message(content, image=response.content)
+        except Exception as error:
+            await chat_record.finish(str(error))
+        await chat_record.finish(MessageSegment.text(res.text), at_sender=True)
+
+chat_stop = on_command("结束连续对话", block=False, priority=1)
+@chat_stop.handle()
+async def _(event: MessageEvent):
+    del session[create_session_id(event)]
+    await chat_stop.finish(MessageSegment.text("成功清除历史记录！"), at_sender=True)
+
+def create_session_id(event):
+    if isinstance(event, PrivateMessageEvent):
+        session_id = f"Private_{event.user_id}"
+    elif public:
+        session_id = event.get_session_id().replace(f"{event.user_id}", "Public")
+    else:
+        session_id = event.get_session_id()
+    return session_id
