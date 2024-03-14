@@ -117,18 +117,9 @@ def create_session_id(event):
         session_id = event.get_session_id()
     return session_id
 
-clear_data = on_command("结束连续对话", block=False, priority=1,permission=SUPERUSER | GROUP_OWNER | GROUP_ADMIN)
+clear_data = on_command("清除记忆", block=False, priority=1,permission=SUPERUSER | GROUP_OWNER | GROUP_ADMIN)
 @clear_data.handle()
 async def _():
     global session
     session = {}
-    await clear_data.finish(MessageSegment.text("成功清除所有历史记录！"), at_sender=True)
-
-def create_session_id(event):
-    if isinstance(event, PrivateMessageEvent):
-        session_id = f"Private_{event.user_id}"
-    elif public:
-        session_id = event.get_session_id().replace(f"{event.user_id}", "Public")
-    else:
-        session_id = event.get_session_id()
-    return session_id
+    await clear_data.finish(MessageSegment.text("成功清除所有记忆！"), at_sender=True)
