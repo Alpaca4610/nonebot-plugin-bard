@@ -3,7 +3,7 @@ import requests
 
 from nonebot import on_command,require
 from nonebot.params import CommandArg
-from nonebot.adapters.onebot.v11 import Message, MessageSegment, PrivateMessageEvent, MessageEvent, helpers
+from nonebot.adapters.onebot.v11 import Message, MessageSegment, PrivateMessageEvent, MessageEvent, helpers, SUPERUSER , GROUP_OWNER , GROUP_ADMIN
 from nonebot.plugin import PluginMetadata
 
 from .config import Config, ConfigError
@@ -107,6 +107,22 @@ chat_stop = on_command("结束连续对话", block=False, priority=1)
 async def _(event: MessageEvent):
     del session[create_session_id(event)]
     await chat_stop.finish(MessageSegment.text("成功清除历史记录！"), at_sender=True)
+
+def create_session_id(event):
+    if isinstance(event, PrivateMessageEvent):
+        session_id = f"Private_{event.user_id}"
+    elif public:
+        session_id = event.get_session_id().replace(f"{event.user_id}", "Public")
+    else:
+        session_id = event.get_session_id()
+    return session_id
+
+clear_data = on_command("结束连续对话", block=False, priority=1,permission=SUPERUSER | GROUP_OWNER | GROUP_ADMIN)
+@clear_data.handle()
+async def _():
+    global session
+    session = {}
+    await clear_data.finish(MessageSegment.text("成功清除所有历史记录！"), at_sender=True)
 
 def create_session_id(event):
     if isinstance(event, PrivateMessageEvent):
