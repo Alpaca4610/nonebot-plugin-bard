@@ -3,7 +3,9 @@ import requests
 
 from nonebot import on_command,require
 from nonebot.params import CommandArg
-from nonebot.adapters.onebot.v11 import Message, MessageSegment, PrivateMessageEvent, MessageEvent, helpers, SUPERUSER , GROUP_OWNER , GROUP_ADMIN
+from nonebot.adapters.onebot.v11 import Message, MessageSegment, PrivateMessageEvent, MessageEvent, helpers , GROUP_OWNER , GROUP_ADMIN
+from nonebot.permission import SUPERUSER
+
 from nonebot.plugin import PluginMetadata
 
 from .config import Config, ConfigError
