@@ -12,11 +12,9 @@
 # 介绍
 - 本插件是适配Google Gemini网页版的聊天机器人插件，借助Gemini Pro的联网能力和多模态识别能力实现更准确地回复和图片识别回复等功能。
 - 核心代码源于[Gemini-API](https://github.com/HanaokaYuzu/Gemini-API)，本插件修改了其中部分内容以兼容其他插件的依赖版本。
-- 当前版本为测试不稳定版本，建议安装Ver4.0之前备份一份依赖环境，使用[稳定版](https://github.com/Alpaca4610/nonebot-plugin-bard/tree/bf202aea9be76be0030595f3e4d6293d728cb217)可以减少依赖冲突问题。
 - 由于历史原因，本插件的名称为nonebot-plugin-bard。
 - ![Gemini Pro的联网能力](nonebot_plugin_bard/images/demo2.jpg)
 - ![Gemini Pro的多模态识别能力](nonebot_plugin_bard/images/demo1.jpg)
-
 # 安装
 
 * 手动安装

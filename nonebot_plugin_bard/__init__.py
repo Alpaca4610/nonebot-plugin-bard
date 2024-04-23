@@ -9,7 +9,7 @@ from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
 
 from .config import Config, ConfigError
-from gemini_webapi import GeminiClient
+from .gemini_webapi import GeminiClient
 
 # require("nonebot_plugin_htmlrender")
 # from nonebot_plugin_htmlrender import md_to_pic
