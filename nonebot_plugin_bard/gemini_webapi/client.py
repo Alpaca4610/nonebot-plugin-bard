@@ -241,18 +241,23 @@ class GeminiClient:
             try:
                 candidates = []
                 for candidate in body[4]:
-                    web_images = (
-                        candidate[4]
-                        and [
-                            WebImage(
-                                url=image[0][0][0],
-                                title=image[2],
-                                alt=image[0][4],
-                            )
-                            for image in candidate[4]
-                        ]
-                        or []
-                    )
+                    # for i in candidate:
+                    #     print("candidate")
+                    #     print(i)
+                    # print("image")
+                    # print(candidate[4])
+                    # web_images = (
+                    #     candidate[4]
+                    #     and [
+                    #         WebImage(
+                    #             url=image[0][0][0],
+                    #             title=image[2],
+                    #             alt=image[0][4],
+                    #         )
+                    #         for image in candidate[4]
+                    #     ]
+                    #     or []
+                    # )
                     generated_images = (
                         candidate[12]
                         and candidate[12][7]
@@ -274,7 +279,7 @@ class GeminiClient:
                         Candidate(
                             rcid=candidate[0],
                             text=candidate[1][0],
-                            web_images=web_images,
+                            web_images="",
                             generated_images=generated_images,
                         )
                     )
